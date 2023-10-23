@@ -1,0 +1,10 @@
+[package]
+edition = "2021"
+name = "dojo8"
+version = "0.0.1"
+
+[dependencies]
+
+[dev-dependencies]
+test-case = "3.1.0"
+pretty_assertions = "1"
