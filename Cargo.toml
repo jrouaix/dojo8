@@ -4,6 +4,10 @@ name = "dojo8"
 version = "0.0.1"
 
 [dependencies]
+indoc = "2"
+enum-map = "3.0.0-0.gat.0"
+strum = "0.25"
+strum_macros = "0.25"
 
 [dev-dependencies]
 test-case = "3.1.0"

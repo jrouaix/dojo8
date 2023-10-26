@@ -1,75 +1,186 @@
-fn main() {
-  println!("hello")
+use enum_map::{Enum, EnumMap};
+use indoc::indoc;
+use std::{fmt::Display, ptr::eq};
+use std::{thread, time};
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+enum CellState {
+  #[default]
+  Dead,
+  Alive,
 }
 
-const SIZE_GRILLE: usize = 8;
-type Grid = [[bool; SIZE_GRILLE]; SIZE_GRILLE];
+const GRID_SIZE: usize = 8;
+type Grid = [[CellState; GRID_SIZE]; GRID_SIZE];
+struct Wrap(Grid);
 
-fn conway_next_gen(grid: Grid) -> Grid {
+#[derive(Enum, EnumIter)]
+enum Direction {
+  North,
+  NorthEast,
+  East,
+  SouthEast,
+  South,
+  SouthWest,
+  West,
+  NorthWest,
+}
+
+#[rustfmt::skip]
+const NEIGHBOURHOOD: EnumMap<Direction, (isize, isize)> = EnumMap::from_array([
+    /* Direction::North     => */ (-1,  0),
+    /* Direction::NorthEast => */ (-1,  1),
+    /* Direction::East      => */ ( 0,  1),
+    /* Direction::SouthEast => */ ( 1,  1),
+    /* Direction::South     => */ ( 1,  0),
+    /* Direction::SouthWest => */ ( 1, -1),
+    /* Direction::West      => */ ( 0, -1),
+    /* Direction::NorthWest => */ (-1, -1)
+    ]);
+
+fn main() {
+  let grid = parser(indoc!(
+    ".X......
+     ..X.....
+     XXX.....
+     ........
+     ........
+     ........
+     ........
+     ........
+     "
+  ));
+
+  println!("\ninitial grid :");
+  display(grid);
+
+  let two_seconds = time::Duration::from_secs(2);
+  let mut prev = grid;
+
+  loop {
+    let next = conway_next_generation(prev);
+    println!("\n\ngrid after a new generation :");
+    display(next);
+    thread::sleep(two_seconds);
+    println!();
+
+    if prev == next {
+      break;
+    }
+
+    prev = next;
+  }
+}
+
+fn conway_next_generation(grid: Grid) -> Grid {
   let mut res = grid.clone();
 
-  for (i, line) in grid.iter().enumerate() {
-    for (j, &cell) in line.iter().enumerate() {
-      if cell {
-        let neighbours = counter_neighbours(&grid, i, j);
-        if neighbours < 2 {
-          res[i][j] = false;
-        }
-      }
+  for (x, line) in grid.iter().enumerate() {
+    for (y, &cell) in line.iter().enumerate() {
+      let neighbours = count_neighbours(&grid, x, y);
+      apply_conways_rules(cell, neighbours, x, y, &mut res);
     }
   }
   res
 }
 
-fn counter_neighbours(grid: &Grid, x: usize, y: usize) -> u8 {
-  let mut nb_arrround: u8 = 0;
+fn apply_conways_rules(cell: CellState, neighbours: u8, x: usize, y: usize, res: &mut [[CellState; 8]; 8]) {
+  match cell {
+    CellState::Alive => {
+      if is_underpopulation(neighbours) || is_overpopulation(neighbours) {
+        die(res, x, y);
+      }
+    }
 
-  if is_valid_index(x - 1, y - 1) && grid[x - 1][y - 1] {
-    nb_arrround += 1;
+    CellState::Dead => {
+      if is_livable_condition(neighbours) {
+        resurrect(res, x, y);
+      }
+    }
   }
-
-  if is_valid_index(x - 1, y) && grid[x - 1][y] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x - 1, y + 1) && grid[x - 1][y + 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x, y - 1) && grid[x][y - 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x, y + 1) && grid[x][y + 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x + 1, y - 1) && grid[x + 1][y - 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x + 1, y) && grid[x + 1][y] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x + 1, y + 1) && grid[x + 1][y + 1] {
-    nb_arrround += 1;
-  }
-
-  nb_arrround
 }
 
-fn is_valid_index(x: usize, y: usize) -> bool {
-  (x >= 0 && x <= SIZE_GRILLE) && (y >= 0 && y <= SIZE_GRILLE)
+fn is_livable_condition(neighbours: u8) -> bool {
+  neighbours == 3
 }
 
-fn parser(grid: &[&str]) -> Grid {
+fn is_overpopulation(neighbours: u8) -> bool {
+  neighbours > 3
+}
+
+fn is_underpopulation(neighbours: u8) -> bool {
+  neighbours < 2
+}
+
+fn is_alive(cell: CellState) -> bool {
+  cell == CellState::Alive
+}
+
+fn resurrect(res: &mut [[CellState; 8]; 8], x: usize, y: usize) {
+  res[x][y] = CellState::Alive;
+}
+
+fn die(res: &mut [[CellState; 8]; 8], x: usize, y: usize) {
+  res[x][y] = CellState::Dead
+}
+
+fn count_neighbours(grid: &Grid, x: usize, y: usize) -> u8 {
+  Direction::iter().map(|d: Direction| count_neighbour(grid, x, y, d)).sum()
+}
+
+fn count_neighbour(grid: &[[CellState; 8]; 8], x: usize, y: usize, direction: Direction) -> u8 {
+  let increment = NEIGHBOURHOOD[direction];
+
+  if let Some(x) = x.checked_add_signed(increment.0) {
+    if let Some(y) = y.checked_add_signed(increment.1) {
+      if let Some(cell) = grid.get(x).and_then(|l| l.get(y)) {
+        if is_alive(*cell) {
+          return 1;
+        }
+      }
+    }
+  }
+  0
+}
+
+impl Display for Wrap {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let separator = "\n";
+    let mut s = String::new();
+
+    for line in &self.0 {
+      for element in line {
+        s.push_str(match element {
+          CellState::Dead => ".",
+          CellState::Alive => "X",
+        });
+
+        if eq(element, line.last().unwrap()) {
+          s.push_str(&separator);
+        }
+      }
+    }
+    write!(f, "{}", s)
+  }
+}
+
+fn display(grid: Grid) {
+  print!("{}", Wrap(grid));
+}
+
+fn parser(grid: &str) -> Grid {
+  parser_slice(grid.lines().collect::<Vec<&str>>().as_slice())
+}
+
+fn parser_slice(grid: &[&str]) -> Grid {
   let mut string_grid = Grid::default();
 
   for (i, line) in grid.iter().take(string_grid.len()).enumerate() {
     for (j, char) in line.chars().take(string_grid[i].len()).enumerate() {
       if char == 'X' || char == 'x' {
-        string_grid[i][j] = true;
+        string_grid[i][j] = CellState::Alive;
       }
     }
   }
@@ -80,22 +191,24 @@ fn parser(grid: &[&str]) -> Grid {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::CellState::Alive;
+  use crate::CellState::Dead;
 
   #[test]
   fn test_empty() {
-    #[rustfmt::skip]
-    let grid = parser(&vec![
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........"
-    ]);
+    let grid = parser(indoc!(
+      "........
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
 
-    let next = conway_next_gen(grid);
+    let next = conway_next_generation(grid);
 
     assert_eq!(next, grid)
   }
@@ -103,96 +216,125 @@ mod tests {
   #[test]
   fn test_parse_one_cell() {
     let grid: Grid = [
-      [false, false, false, false, false, false, false, false],
-      [false, true, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Alive, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
+      [Dead, Dead, Dead, Dead, Dead, Dead, Dead, Dead],
     ];
 
-    #[rustfmt::skip]
-    let res = parser(&vec![
-      "........",
-      ".X......",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........"
-    ]);
+    let res = parser(indoc!(
+      "........
+       .X......
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
     assert_eq!(res, grid);
   }
 
   #[test]
+  fn test_format_one_cell_grid() {
+    let grid = parser(indoc!(
+      "........
+       .X......
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
+
+    let expected_grid = indoc!(
+      "........
+       .X......
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    );
+
+    let formated_grid = format!("{}", Wrap(grid));
+    assert_eq!(formated_grid, expected_grid);
+  }
+
+  #[test]
   fn test_parse_antipanic() {
-    #[rustfmt::skip]
-    parser(&vec![
-      "........",
-      ".X......X",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-    ]);
+    parser(indoc!(
+      ".X......
+       .XX.....X
+       .X......
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
   }
 
   #[test]
   fn test_parse_empty() {
-    #[rustfmt::skip]
-    let res = parser(&vec![
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-    ]);
+    let res = parser(indoc!(
+      "........
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
     assert_eq!(res, Grid::default());
   }
 
   #[test]
   fn test_1_cellule_en_vie_doit_mourrir() {
-    #[rustfmt::skip]
-    let grid = parser(&vec![
-      "........",
-      ".X......",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........",
-      "........"
-    ]);
+    let grid = parser(indoc!(
+      "........
+       ........
+       .X......
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
 
-    let next = conway_next_gen(grid);
+    let next = conway_next_generation(grid);
 
     assert_eq!(next, Grid::default());
   }
 
   #[test]
   fn test_un_carre_ne_doit_pas_bouger() {
-    #[rustfmt::skip]
-    let grid = parser(&vec![
-      "........",
-      "........",
-      "..XX....",
-      "..XX....",
-      "........",
-      "........",
-      "........",
-      "........"
-    ]);
+    let grid = parser(indoc!(
+      "........
+       .XX.....
+       .XX.....
+       ........
+       ........
+       ........
+       ........
+       ........
+       "
+    ));
 
-    let next = conway_next_gen(grid);
+    let next = conway_next_generation(grid);
 
     assert_eq!(next, grid);
   }
