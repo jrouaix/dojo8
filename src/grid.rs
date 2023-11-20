@@ -16,14 +16,14 @@ enum CellState {
 
 impl CellState {
   pub fn is_alive(&self) -> bool {
-    self == &CellState::Alive
+    self == &Alive
   }
 
   fn next(self, neighbours: u8) -> Self {
     match (self, neighbours) {
       (Alive, 2) | (Alive, 3) => Alive,
       (Dead, 3) => Alive,
-      _ => CellState::Dead,
+      _ => Dead,
     }
   }
 
@@ -72,7 +72,7 @@ mod cell_state_tests {
 }
 
 const GRID_H: usize = 50;
-const GRID_W: usize = 100;
+const GRID_W: usize = 200;
 type InnerGrid = [[CellState; GRID_W]; GRID_H];
 
 #[derive(Debug, PartialEq, Clone)]
@@ -159,8 +159,8 @@ impl std::fmt::Display for Grid {
     for line in &self.inner {
       for element in line {
         s.push(match element {
-          CellState::Dead => DEAD_CHAR,
-          CellState::Alive => ALIVE_CHAR,
+          Dead => DEAD_CHAR,
+          Alive => ALIVE_CHAR,
         });
       }
       s.push_str(&separator);
@@ -178,7 +178,7 @@ impl FromStr for Grid {
     for (i, line) in s.lines().take(inner.len()).enumerate() {
       for (j, char) in line.chars().take(inner[i].len()).enumerate() {
         if char != DEAD_CHAR {
-          inner[i][j] = CellState::Alive;
+          inner[i][j] = Alive;
         }
       }
     }

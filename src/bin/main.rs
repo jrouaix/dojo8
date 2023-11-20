@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()> {
     write!(console, "{grid}")?;
     console.flush()?;
     grid = grid.next();
-    thread::sleep(time::Duration::from_millis(300));
+    thread::sleep(time::Duration::from_millis(30));
   }
 }
 
