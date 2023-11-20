@@ -1,5 +1,16 @@
 fn main() {
-  println!("hello")
+  #[rustfmt::skip]
+  let grid = parser(&vec![
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........"
+  ]);
+  conway_next_gen(grid);
 }
 
 const SIZE_GRILLE: usize = 8;
@@ -12,8 +23,13 @@ fn conway_next_gen(grid: Grid) -> Grid {
     for (j, &cell) in line.iter().enumerate() {
       if cell {
         let neighbours = counter_neighbours(&grid, i, j);
-        if neighbours < 2 {
+        if neighbours < 2 || neighbours > 3 {
           res[i][j] = false;
+        }
+      } else {
+        let neighbours = counter_neighbours(&grid, i, j);
+        if neighbours == 3 {
+          res[i][j] = true;
         }
       }
     }
@@ -22,45 +38,20 @@ fn conway_next_gen(grid: Grid) -> Grid {
 }
 
 fn counter_neighbours(grid: &Grid, x: usize, y: usize) -> u8 {
-  let mut nb_arrround: u8 = 0;
-
-  if is_valid_index(x - 1, y - 1) && grid[x - 1][y - 1] {
-    nb_arrround += 1;
+  let indexes: [(isize, isize); 8] = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
+  fn is_alive(grid: &Grid, x: &usize, y: &usize) -> bool {
+    grid[*x][*y]
   }
-
-  if is_valid_index(x - 1, y) && grid[x - 1][y] {
-    nb_arrround += 1;
+  fn is_valid_index((x, y): &(isize, isize)) -> bool {
+    *x >= 0_isize && *x < SIZE_GRILLE as isize && *y >= 0_isize && *y < SIZE_GRILLE as isize
   }
-
-  if is_valid_index(x - 1, y + 1) && grid[x - 1][y + 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x, y - 1) && grid[x][y - 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x, y + 1) && grid[x][y + 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x + 1, y - 1) && grid[x + 1][y - 1] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x + 1, y) && grid[x + 1][y] {
-    nb_arrround += 1;
-  }
-
-  if is_valid_index(x + 1, y + 1) && grid[x + 1][y + 1] {
-    nb_arrround += 1;
-  }
-
-  nb_arrround
-}
-
-fn is_valid_index(x: usize, y: usize) -> bool {
-  (x >= 0 && x <= SIZE_GRILLE) && (y >= 0 && y <= SIZE_GRILLE)
+  indexes
+    .into_iter()
+    .map(|(tx, ty)| (x as isize + tx, y as isize + ty))
+    .filter(is_valid_index)
+    .map(|(x, y)| (x as usize, y as usize))
+    .filter(|(x, y)| is_alive(grid, x, y))
+    .count() as u8
 }
 
 fn parser(grid: &[&str]) -> Grid {
@@ -80,6 +71,7 @@ fn parser(grid: &[&str]) -> Grid {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_empty() {
@@ -195,5 +187,96 @@ mod tests {
     let next = conway_next_gen(grid);
 
     assert_eq!(next, grid);
+  }
+
+  #[test]
+  fn test_dans_un_cas_de_surpopulation_la_cellule_doit_mourrir() {
+    #[rustfmt::skip]
+    let grid = parser(&vec![
+      "........",
+      "........",
+      "..XXX...",
+      "..XX....",
+      "........",
+      "........",
+      "........",
+      "........"
+    ]);
+
+    #[rustfmt::skip]
+    let res = parser(&vec![
+      "........",
+      "...X....",
+      "..X.X...",
+      "..X.X...",
+      "........",
+      "........",
+      "........",
+      "........"
+    ]);
+
+    let next = conway_next_gen(grid);
+
+    assert_eq!(next, res);
+  }
+
+  #[test]
+  fn test_bordure_ne_doit_pas_planter() {
+    #[rustfmt::skip]
+    let grid = parser(&vec![
+      "........",
+      "........",
+      "..XX....",
+      "..XX....",
+      "........",
+      "........",
+      "X.......",
+      "........"
+    ]);
+
+    #[rustfmt::skip]
+    let res = parser(&vec![
+      "........",
+      "........",
+      "..XX....",
+      "..XX....",
+      "........",
+      "........",
+      "........",
+      "........"
+    ]);
+
+    let next = conway_next_gen(grid);
+    assert_eq!(next, res);
+  }
+
+  #[test]
+  fn test_de_naissance() {
+    #[rustfmt::skip]
+    let grid = parser(&vec![
+      "........",
+      "........",
+      "..XXX...",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........"
+    ]);
+
+    #[rustfmt::skip]
+    let res = parser(&vec![
+      "........",
+      "...X....",
+      "...X....",
+      "...X....",
+      "........",
+      "........",
+      "........",
+      "........"
+    ]);
+
+    let next = conway_next_gen(grid);
+    assert_eq!(next, res);
   }
 }
