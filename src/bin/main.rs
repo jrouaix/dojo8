@@ -1,8 +1,7 @@
 use std::io::Write;
 use std::{thread, time};
 
-mod grid;
-use grid::Grid;
+use gameoflife::Grid;
 
 fn main() -> anyhow::Result<()> {
   let mut console = std::io::stdout().lock();

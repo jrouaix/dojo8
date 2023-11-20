@@ -1,7 +1,22 @@
 [package]
 edition = "2021"
-name = "dojo8"
+name = "gameoflife"
 version = "0.0.1"
+
+
+[lib]
+name = "gameoflife"
+path = "src/lib.rs"
+
+default-run = "gameoflife_cli"
+
+[[bin]]
+name = "gameoflife_cli"
+path = "src/bin/main.rs"
+
+[[bench]]
+name = "loop_generations"
+harness = false
 
 [dependencies]
 indoc = "2"
@@ -15,3 +30,4 @@ anyhow = "1.0"
 [dev-dependencies]
 test-case = "3.1"
 pretty_assertions = "1"
+criterion = "0.5"
