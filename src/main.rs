@@ -1,4 +1,3 @@
-use enum_map::{Enum, EnumMap};
 use indoc::indoc;
 use std::{fmt::Display, ptr::eq};
 use std::{thread, time};
@@ -12,11 +11,17 @@ enum CellState {
   Alive,
 }
 
+impl CellState {
+  fn is_alive(&self) -> bool {
+    self == &CellState::Alive
+  }
+}
+
 const GRID_SIZE: usize = 8;
 type Grid = [[CellState; GRID_SIZE]; GRID_SIZE];
 struct Wrap(Grid);
 
-#[derive(Enum, EnumIter)]
+#[derive(Clone, Copy, EnumIter)]
 enum Direction {
   North,
   NorthEast,
@@ -28,17 +33,20 @@ enum Direction {
   NorthWest,
 }
 
-#[rustfmt::skip]
-const NEIGHBOURHOOD: EnumMap<Direction, (isize, isize)> = EnumMap::from_array([
-    /* Direction::North     => */ (-1,  0),
-    /* Direction::NorthEast => */ (-1,  1),
-    /* Direction::East      => */ ( 0,  1),
-    /* Direction::SouthEast => */ ( 1,  1),
-    /* Direction::South     => */ ( 1,  0),
-    /* Direction::SouthWest => */ ( 1, -1),
-    /* Direction::West      => */ ( 0, -1),
-    /* Direction::NorthWest => */ (-1, -1)
-    ]);
+impl Direction {
+  pub fn get_coordinates(&self) -> (isize, isize) {
+    match self {
+      Direction::North => (-1, 0),
+      Direction::NorthEast => (-1, 1),
+      Direction::East => (0, 1),
+      Direction::SouthEast => (1, 1),
+      Direction::South => (1, 0),
+      Direction::SouthWest => (1, -1),
+      Direction::West => (0, -1),
+      Direction::NorthWest => (-1, -1),
+    }
+  }
+}
 
 fn main() {
   let grid = parser(indoc!(
@@ -114,10 +122,6 @@ fn is_underpopulation(neighbours: u8) -> bool {
   neighbours < 2
 }
 
-fn is_alive(cell: CellState) -> bool {
-  cell == CellState::Alive
-}
-
 fn resurrect(res: &mut [[CellState; 8]; 8], x: usize, y: usize) {
   res[x][y] = CellState::Alive;
 }
@@ -131,12 +135,12 @@ fn count_neighbours(grid: &Grid, x: usize, y: usize) -> u8 {
 }
 
 fn count_neighbour(grid: &[[CellState; 8]; 8], x: usize, y: usize, direction: Direction) -> u8 {
-  let increment = NEIGHBOURHOOD[direction];
+  let increment = direction.get_coordinates();
 
   if let Some(x) = x.checked_add_signed(increment.0) {
     if let Some(y) = y.checked_add_signed(increment.1) {
       if let Some(cell) = grid.get(x).and_then(|l| l.get(y)) {
-        if is_alive(*cell) {
+        if cell.is_alive() {
           return 1;
         }
       }
