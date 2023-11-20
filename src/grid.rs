@@ -71,12 +71,19 @@ mod cell_state_tests {
   }
 }
 
-const GRID_SIZE: usize = 16;
-type InnerGrid = [[CellState; GRID_SIZE]; GRID_SIZE];
+const GRID_H: usize = 50;
+const GRID_W: usize = 100;
+type InnerGrid = [[CellState; GRID_W]; GRID_H];
 
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Grid {
   inner: InnerGrid,
+}
+
+impl Default for Grid {
+  fn default() -> Self {
+    Self { inner: [[CellState::default(); GRID_W]; GRID_H] }
+  }
 }
 
 impl Grid {
@@ -166,15 +173,16 @@ impl FromStr for Grid {
   type Err = ();
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    let mut grid = InnerGrid::default();
-    for (i, line) in s.lines().take(grid.len()).enumerate() {
-      for (j, char) in line.chars().take(grid[i].len()).enumerate() {
+    let mut result = Self::default();
+    let inner = &mut result.inner;
+    for (i, line) in s.lines().take(inner.len()).enumerate() {
+      for (j, char) in line.chars().take(inner[i].len()).enumerate() {
         if char != DEAD_CHAR {
-          grid[i][j] = CellState::Alive;
+          inner[i][j] = CellState::Alive;
         }
       }
     }
-    Ok(Self { inner: grid })
+    Ok(result)
   }
 }
 
