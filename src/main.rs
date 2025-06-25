@@ -1,16 +1,17 @@
+use bevy::prelude::*;
+use test_plugin::HelloPlugin;
+
+pub mod test_plugin;
+
 fn main() {
-  #[rustfmt::skip]
-  let grid = parser(&vec![
-    "........",
-    "........",
-    "........",
-    "........",
-    "........",
-    "........",
-    "........",
-    "........"
-  ]);
-  conway_next_gen(grid);
+  App::new()
+    .add_plugins((
+      DefaultPlugins
+        .build()
+        .set(WindowPlugin { primary_window: Some(Window { fit_canvas_to_parent: true, ..Default::default() }), ..Default::default() }),
+      HelloPlugin,
+    ))
+    .run();
 }
 
 const SIZE_GRILLE: usize = 8;
