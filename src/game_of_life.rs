@@ -1,10 +1,10 @@
 use bevy::{
-  color::palettes::css::{BLACK, WHITE, YELLOW},
+  color::palettes::css::{BLACK, WHITE},
   prelude::*,
   window::PrimaryWindow,
 };
 
-use crate::consts::GLIDER;
+use crate::consts::{text_404_mask, TEXT_404_TOP_LEFT_X_OFFSET, TEXT_404_TOP_LEFT_Y_OFFSET};
 
 pub struct GameOfLife;
 
@@ -12,6 +12,7 @@ impl Plugin for GameOfLife {
   fn build(&self, app: &mut App) {
     app
       .insert_resource(GameTimer(Timer::from_seconds(0.5f32, TimerMode::Repeating)))
+      .insert_resource(WaitForUserTimer(Timer::from_seconds(5f32, TimerMode::Once)))
       .add_systems(Startup, setup_camera)
       .add_systems(PostStartup, setup_entities)
       .add_systems(Update, game_loop);
@@ -27,7 +28,7 @@ fn setup_camera(mut commands: Commands, q_window: Query<&Window, With<PrimaryWin
   info!("Camera2d has been spawned");
 }
 
-const SQUARE_SIZE: f32 = 40f32;
+const SQUARE_SIZE: f32 = 20f32;
 const HALF_SQUARE_SIZE: f32 = SQUARE_SIZE / 2f32;
 
 pub type Grid = Vec<Vec<(bool, Handle<ColorMaterial>)>>;
@@ -39,6 +40,9 @@ struct GameGrid {
 #[derive(Resource)]
 struct GameTimer(Timer);
 
+#[derive(Resource)]
+struct WaitForUserTimer(Timer);
+
 fn setup_entities(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
@@ -49,8 +53,14 @@ fn setup_entities(
 
   let window = q_window.single().unwrap();
 
-  let vertical_capacity = (window.height() / SQUARE_SIZE) as usize + 2;
-  let horizontal_capacity = (window.width() / SQUARE_SIZE) as usize + 2;
+  let vertical_capacity = (window.height() / SQUARE_SIZE) as usize;
+  let horizontal_capacity = (window.width() / SQUARE_SIZE) as usize;
+
+  let grid_center_x = horizontal_capacity.div_euclid(2);
+  let grid_center_y = vertical_capacity.div_euclid(2);
+
+  let anchor_404_x = grid_center_x as isize + TEXT_404_TOP_LEFT_X_OFFSET;
+  let anchor_404_y = grid_center_y as isize + TEXT_404_TOP_LEFT_Y_OFFSET;
 
   let mut grid = Vec::<Vec<(bool, Handle<ColorMaterial>)>>::new();
   info!("Grid has been initialized with size: {}x{}", horizontal_capacity, vertical_capacity);
@@ -60,11 +70,11 @@ fn setup_entities(
 
     for j in 0..vertical_capacity {
       let spawn_x = (SQUARE_SIZE * i as f32) - HALF_SQUARE_SIZE;
-      let spawn_y = (SQUARE_SIZE * j as f32) - HALF_SQUARE_SIZE;
+      let spawn_y = window.height() - (SQUARE_SIZE * j as f32) - HALF_SQUARE_SIZE;
 
       info!("Spawning cell at: ({}, {})", spawn_x, spawn_y);
 
-      if [(11, 10), (12, 11), (10, 12), (11, 12), (12, 12)].contains(&(i, j)) {
+      if text_404_mask(anchor_404_x as usize, anchor_404_y as usize, i, j) {
         let color_handle = materials.add(Color::from(WHITE));
 
         commands.spawn((Mesh2d(meshes.add(rect)), MeshMaterial2d(color_handle.clone()), Transform::from_xyz(spawn_x, spawn_y, 0f32)));
@@ -88,9 +98,15 @@ fn setup_entities(
 fn game_loop(
   time: Res<Time>,
   mut res_timer: ResMut<GameTimer>,
+  mut res_user_timer: ResMut<WaitForUserTimer>,
   mut res_grid: ResMut<GameGrid>,
   mut res_materials: ResMut<Assets<ColorMaterial>>,
 ) {
+  if !res_user_timer.0.finished() {
+    res_user_timer.0.tick(time.delta());
+    return;
+  }
+
   let grid = &mut res_grid.grid;
 
   if res_timer.0.tick(time.delta()).just_finished() {
