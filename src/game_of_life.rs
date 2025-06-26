@@ -9,7 +9,7 @@ pub struct GameOfLife;
 impl Plugin for GameOfLife {
   fn build(&self, app: &mut App) {
     app
-      .insert_resource(GameTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
+      .insert_resource(GameTimer(Timer::from_seconds(0.5f32, TimerMode::Repeating)))
       .add_systems(Startup, setup_camera)
       .add_systems(PostStartup, setup_entities)
       .add_systems(Update, game_loop);
@@ -29,13 +29,6 @@ pub type Grid = Vec<Vec<(bool, Handle<ColorMaterial>)>>;
 struct GameGrid {
   grid: Grid,
 }
-
-#[derive(Component)]
-struct CellCoords {
-  x: usize,
-  y: usize,
-}
-
 #[derive(Resource)]
 struct GameTimer(Timer);
 
@@ -68,11 +61,10 @@ fn setup_entities(
 
       match camera.viewport_to_world_2d(camera_transform, Vec2 { x: spawn_x, y: spawn_y }) {
         Ok(world_position) => {
-          if [(11, 11), (12, 12), (13, 13), (11, 13)].contains(&(i, j)) {
+          if [(11, 10), (12, 11), (10, 12), (11, 12), (12, 12)].contains(&(i, j)) {
             let color_handle = materials.add(Color::from(WHITE));
 
             commands.spawn((
-              CellCoords { x: i, y: j },
               Mesh2d(meshes.add(rect)),
               MeshMaterial2d(color_handle.clone()),
               Transform::from_xyz(world_position.x, world_position.y, 0f32),
@@ -83,7 +75,6 @@ fn setup_entities(
             let color_handle = materials.add(Color::from(BLACK));
 
             commands.spawn((
-              CellCoords { x: i, y: j },
               Mesh2d(meshes.add(rect)),
               MeshMaterial2d(color_handle.clone()),
               Transform::from_xyz(world_position.x, world_position.y, 0f32),
