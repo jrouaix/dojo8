@@ -9,10 +9,9 @@ fn main() {
     .add_plugins((
       DefaultPlugins.build().set(WindowPlugin {
         primary_window: Some(Window {
+          resizable: false,
           fit_canvas_to_parent: true,
-          present_mode: bevy::window::PresentMode::AutoNoVsync,
-          canvas: Some("#game_of_life".to_string()),
-          title: "Game of Life".to_string(),
+          mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
           ..Default::default()
         }),
         ..Default::default()

@@ -11,7 +11,7 @@ pub struct GameOfLife;
 impl Plugin for GameOfLife {
   fn build(&self, app: &mut App) {
     app
-      .insert_resource(GameTimer(Timer::from_seconds(0.5f32, TimerMode::Repeating)))
+      .insert_resource(GameTimer(Timer::from_seconds(0.1f32, TimerMode::Repeating)))
       .insert_resource(WaitForUserTimer(Timer::from_seconds(5f32, TimerMode::Once)))
       .add_systems(Startup, setup_camera)
       .add_systems(PostStartup, setup_entities)
@@ -28,7 +28,7 @@ fn setup_camera(mut commands: Commands, q_window: Query<&Window, With<PrimaryWin
   info!("Camera2d has been spawned");
 }
 
-const SQUARE_SIZE: f32 = 20f32;
+const SQUARE_SIZE: f32 = 10f32;
 const HALF_SQUARE_SIZE: f32 = SQUARE_SIZE / 2f32;
 
 pub type Grid = Vec<Vec<(bool, Handle<ColorMaterial>)>>;
@@ -63,7 +63,6 @@ fn setup_entities(
   let anchor_404_y = grid_center_y as isize + TEXT_404_TOP_LEFT_Y_OFFSET;
 
   let mut grid = Vec::<Vec<(bool, Handle<ColorMaterial>)>>::new();
-  info!("Grid has been initialized with size: {}x{}", horizontal_capacity, vertical_capacity);
 
   for i in 0..horizontal_capacity {
     grid.push(Vec::new());
@@ -72,22 +71,16 @@ fn setup_entities(
       let spawn_x = (SQUARE_SIZE * i as f32) - HALF_SQUARE_SIZE;
       let spawn_y = window.height() - (SQUARE_SIZE * j as f32) - HALF_SQUARE_SIZE;
 
-      info!("Spawning cell at: ({}, {})", spawn_x, spawn_y);
+      let is_alive = rand::random_bool(0.2); // Randomly decide if the cell is alive or dead
 
-      if text_404_mask(anchor_404_x as usize, anchor_404_y as usize, i, j) {
+      if is_alive || text_404_mask(anchor_404_x as usize, anchor_404_y as usize, i, j) {
         let color_handle = materials.add(Color::from(WHITE));
-
         commands.spawn((Mesh2d(meshes.add(rect)), MeshMaterial2d(color_handle.clone()), Transform::from_xyz(spawn_x, spawn_y, 0f32)));
-
         grid[i].push((true, color_handle));
-        info!("Cell at ({}, {}) is alive", i, j);
       } else {
         let color_handle = materials.add(Color::from(BLACK));
-
         commands.spawn((Mesh2d(meshes.add(rect)), MeshMaterial2d(color_handle.clone()), Transform::from_xyz(spawn_x, spawn_y, 0f32)));
-
         grid[i].push((false, color_handle));
-        info!("Cell at ({}, {}) is dead", i, j);
       }
     }
   }
