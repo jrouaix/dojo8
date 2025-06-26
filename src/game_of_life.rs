@@ -1,8 +1,10 @@
 use bevy::{
-  color::palettes::css::{BLACK, WHITE},
+  color::palettes::css::{BLACK, WHITE, YELLOW},
   prelude::*,
   window::PrimaryWindow,
 };
+
+use crate::consts::GLIDER;
 
 pub struct GameOfLife;
 
@@ -16,8 +18,13 @@ impl Plugin for GameOfLife {
   }
 }
 
-fn setup_camera(mut commands: Commands) {
-  commands.spawn(Camera2d);
+fn setup_camera(mut commands: Commands, q_window: Query<&Window, With<PrimaryWindow>>) {
+  let window = q_window.single().unwrap();
+  info!("Setting up camera with window size: {}x{}", window.width(), window.height());
+
+  // Set the camera to cover the entire window
+  commands.spawn((Camera2d::default(), Transform::from_xyz(window.width() / 2f32, window.height() / 2f32, 100f32)));
+  info!("Camera2d has been spawned");
 }
 
 const SQUARE_SIZE: f32 = 40f32;
@@ -36,14 +43,9 @@ fn setup_entities(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<ColorMaterial>>,
-  q_camera: Query<(&Camera, &GlobalTransform)>,
   q_window: Query<&Window, With<PrimaryWindow>>,
 ) {
   let rect = Rectangle::new(SQUARE_SIZE, SQUARE_SIZE);
-
-  // get the camera info and transform
-  // assuming there is exactly one main camera entity, so Query::single() is OK
-  let (camera, camera_transform) = q_camera.single().unwrap();
 
   let window = q_window.single().unwrap();
 
@@ -51,6 +53,7 @@ fn setup_entities(
   let horizontal_capacity = (window.width() / SQUARE_SIZE) as usize + 2;
 
   let mut grid = Vec::<Vec<(bool, Handle<ColorMaterial>)>>::new();
+  info!("Grid has been initialized with size: {}x{}", horizontal_capacity, vertical_capacity);
 
   for i in 0..horizontal_capacity {
     grid.push(Vec::new());
@@ -59,31 +62,22 @@ fn setup_entities(
       let spawn_x = (SQUARE_SIZE * i as f32) - HALF_SQUARE_SIZE;
       let spawn_y = (SQUARE_SIZE * j as f32) - HALF_SQUARE_SIZE;
 
-      match camera.viewport_to_world_2d(camera_transform, Vec2 { x: spawn_x, y: spawn_y }) {
-        Ok(world_position) => {
-          if [(11, 10), (12, 11), (10, 12), (11, 12), (12, 12)].contains(&(i, j)) {
-            let color_handle = materials.add(Color::from(WHITE));
+      info!("Spawning cell at: ({}, {})", spawn_x, spawn_y);
 
-            commands.spawn((
-              Mesh2d(meshes.add(rect)),
-              MeshMaterial2d(color_handle.clone()),
-              Transform::from_xyz(world_position.x, world_position.y, 0f32),
-            ));
+      if [(11, 10), (12, 11), (10, 12), (11, 12), (12, 12)].contains(&(i, j)) {
+        let color_handle = materials.add(Color::from(WHITE));
 
-            grid[i].push((true, color_handle));
-          } else {
-            let color_handle = materials.add(Color::from(BLACK));
+        commands.spawn((Mesh2d(meshes.add(rect)), MeshMaterial2d(color_handle.clone()), Transform::from_xyz(spawn_x, spawn_y, 0f32)));
 
-            commands.spawn((
-              Mesh2d(meshes.add(rect)),
-              MeshMaterial2d(color_handle.clone()),
-              Transform::from_xyz(world_position.x, world_position.y, 0f32),
-            ));
+        grid[i].push((true, color_handle));
+        info!("Cell at ({}, {}) is alive", i, j);
+      } else {
+        let color_handle = materials.add(Color::from(BLACK));
 
-            grid[i].push((false, color_handle));
-          }
-        }
-        Err(err) => println!("Err: {err}"),
+        commands.spawn((Mesh2d(meshes.add(rect)), MeshMaterial2d(color_handle.clone()), Transform::from_xyz(spawn_x, spawn_y, 0f32)));
+
+        grid[i].push((false, color_handle));
+        info!("Cell at ({}, {}) is dead", i, j);
       }
     }
   }

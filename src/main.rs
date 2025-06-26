@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use game_of_life::GameOfLife;
 
+mod consts;
 pub mod game_of_life;
 
 fn main() {
