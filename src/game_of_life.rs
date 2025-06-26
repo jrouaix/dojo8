@@ -93,7 +93,6 @@ fn setup_entities(
 
 fn game_loop(
   time: Res<Time>,
-  mut commands: Commands,
   mut res_timer: ResMut<GameTimer>,
   mut res_grid: ResMut<GameGrid>,
   mut res_materials: ResMut<Assets<ColorMaterial>>,
