@@ -1,4 +1,7 @@
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{
+  prelude::*,
+  window::{PresentMode, WindowMode, WindowResolution},
+};
 use game_of_life::GameOfLife;
 
 mod consts;
@@ -12,6 +15,9 @@ fn main() {
           present_mode: PresentMode::AutoVsync,
           // Tells Wasm to resize the window according to the available canvas
           fit_canvas_to_parent: true,
+          // Sets the window to take the whole screen
+          mode: WindowMode::Windowed,
+          resolution: WindowResolution::new(1920.0, 1080.0),
           // Tells Wasm not to override default event handling, like F5, Ctrl+R etc.
           prevent_default_event_handling: false,
           ..Default::default()
