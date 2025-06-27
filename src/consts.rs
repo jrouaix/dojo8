@@ -1,13 +1,13 @@
-const NEAR_MASK_MARGIN: isize = 2;
+pub const NEAR_MASK_MARGIN: isize = 2;
 
-const GLIDER_WIDTH: usize = 3;
-const GLIDER_HEIGHT: usize = 3;
+pub const GLIDER_WIDTH: usize = 3;
+pub const GLIDER_HEIGHT: usize = 3;
 
 #[rustfmt::skip]
 pub const GLIDER: [[bool; GLIDER_WIDTH]; GLIDER_HEIGHT] = [
-  [false, true , false], 
-  [false, false, true ], 
-  [true , true , true ]
+  [false, false, true], 
+  [true , false, true], 
+  [false, true , true]
 ];
 
 pub fn glider_mask(anchor_x: usize, anchor_y: usize, current_x: usize, current_y: usize) -> bool {
@@ -28,8 +28,8 @@ pub fn glider_mask(anchor_x: usize, anchor_y: usize, current_x: usize, current_y
 // ⬛ represents a dead cell
 // ⬜ represents a live cell
 
-const TEXT_404_WIDTH: usize = 17;
-const TEXT_404_HEIGHT: usize = 7;
+pub const TEXT_404_WIDTH: usize = 17;
+pub const TEXT_404_HEIGHT: usize = 7;
 pub const TEXT_404_TOP_LEFT_X_OFFSET: isize = -(TEXT_404_WIDTH as isize / 2);
 pub const TEXT_404_TOP_LEFT_Y_OFFSET: isize = -(TEXT_404_HEIGHT as isize / 2);
 

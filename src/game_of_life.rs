@@ -91,7 +91,7 @@ fn setup_entities(
 }
 
 fn game_loop(
-  time: Res<Time>,
+  time: Res<Time<Real>>,
   mut res_timer: ResMut<GameTimer>,
   mut res_user_timer: ResMut<WaitForUserTimer>,
   mut res_grid: ResMut<GameGrid>,
@@ -154,4 +154,42 @@ fn counter_neighbours(grid: &Grid, x: usize, y: usize) -> u8 {
     .map(|(x, y)| (x as usize, y as usize))
     .filter(|(x, y)| is_alive(grid, x, y))
     .count() as u8
+}
+
+#[cfg(test)]
+pub mod tests {
+  use super::*;
+
+  #[test]
+  pub fn test_counter_neighbours() {
+    let grid: Grid = vec![
+      vec![(false, Handle::default()), (true, Handle::default()), (false, Handle::default())],
+      vec![(true, Handle::default()), (true, Handle::default()), (false, Handle::default())],
+      vec![(false, Handle::default()), (false, Handle::default()), (false, Handle::default())],
+    ];
+
+    assert_eq!(counter_neighbours(&grid, 0, 0), 3);
+    assert_eq!(counter_neighbours(&grid, 1, 1), 2);
+    assert_eq!(counter_neighbours(&grid, 2, 2), 1);
+  }
+
+  #[test]
+  pub fn test_counter_neighbours_with_empty_grid() {
+    let grid: Grid = vec![vec![(false, Handle::default()); 3]; 3];
+    for i in 0..3 {
+      for j in 0..3 {
+        assert_eq!(counter_neighbours(&grid, i, j), 0);
+      }
+    }
+  }
+
+  #[test]
+  pub fn test_counter_neighbours_with_filled_grid() {
+    let grid: Grid = vec![vec![(true, Handle::default()); 3]; 3];
+    for i in 0..3 {
+      for j in 0..3 {
+        assert!(counter_neighbours(&grid, i, j) > 0);
+      }
+    }
+  }
 }
