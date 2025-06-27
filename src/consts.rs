@@ -1,3 +1,5 @@
+const NEAR_MASK_MARGIN: isize = 2;
+
 const GLIDER_WIDTH: usize = 3;
 const GLIDER_HEIGHT: usize = 3;
 
@@ -55,4 +57,18 @@ pub fn text_404_mask(anchor_x: usize, anchor_y: usize, current_x: usize, current
   } else {
     false
   }
+}
+
+pub fn is_near_text_404(anchor404_x: usize, anchor404_y: usize, current_x: usize, current_y: usize) -> bool {
+  // A cell is considered near the text if it is within a 1-cell distance from the text boundaries
+  let text_min_x = anchor404_x as isize - NEAR_MASK_MARGIN;
+  let text_min_y = anchor404_y as isize - NEAR_MASK_MARGIN;
+
+  let text_max_x = anchor404_x as isize + TEXT_404_WIDTH as isize + NEAR_MASK_MARGIN;
+  let text_max_y = anchor404_y as isize + TEXT_404_HEIGHT as isize + NEAR_MASK_MARGIN;
+
+  current_x as isize >= text_min_x
+    && current_x as isize <= text_max_x
+    && current_y as isize >= text_min_y
+    && current_y as isize <= text_max_y
 }

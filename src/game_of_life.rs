@@ -4,7 +4,7 @@ use bevy::{
   window::PrimaryWindow,
 };
 
-use crate::consts::{text_404_mask, TEXT_404_TOP_LEFT_X_OFFSET, TEXT_404_TOP_LEFT_Y_OFFSET};
+use crate::consts::{is_near_text_404, text_404_mask, TEXT_404_TOP_LEFT_X_OFFSET, TEXT_404_TOP_LEFT_Y_OFFSET};
 
 pub struct GameOfLife;
 
@@ -73,7 +73,9 @@ fn setup_entities(
 
       let is_alive = rand::random_bool(0.2); // Randomly decide if the cell is alive or dead
 
-      if is_alive || text_404_mask(anchor_404_x as usize, anchor_404_y as usize, i, j) {
+      if text_404_mask(anchor_404_x as usize, anchor_404_y as usize, i, j)
+        || (is_alive && !is_near_text_404(anchor_404_x as usize, anchor_404_y as usize, i, j))
+      {
         let color_handle = materials.add(Color::from(WHITE));
         commands.spawn((Mesh2d(meshes.add(rect)), MeshMaterial2d(color_handle.clone()), Transform::from_xyz(spawn_x, spawn_y, 0f32)));
         grid[i].push((true, color_handle));
